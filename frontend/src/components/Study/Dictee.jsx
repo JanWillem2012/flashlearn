@@ -1,60 +1,92 @@
-import { useState, useRef, useEffect } from "react";
+﻿import { useState, useRef, useEffect } from "react";
 import { updateWordSRS, logSession } from "../../firebase/db";
 import { sm2 } from "../../hooks/useSpacedRepetition";
 import { useAuth } from "../../context/AuthContext";
-import { ArrowLeft, RotateCcw } from "lucide-react";
-function Results({ correct, total, onBack, onRestart }) {
-  const pct = Math.round((correct/total)*100);
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 to-purple-900 flex items-center justify-center">
-      <div className="bg-white rounded-2xl p-10 text-center max-w-sm w-full mx-4">
-        <p className="text-4xl font-bold text-indigo-600 mb-1">{pct}%</p>
-        <p className="text-gray-400 mb-8">{correct}/{total} goed</p>
-        <div className="flex flex-col gap-3">
-          <button onClick={onRestart} className="flex items-center justify-center gap-2 bg-indigo-600 text-white py-3 rounded-xl"><RotateCcw size={18} /> Opnieuw</button>
-          <button onClick={onBack} className="border py-3 rounded-xl text-gray-600">Andere modus</button>
-        </div>
-      </div>
-    </div>
-  );
-}
+import Results from "./Results";
+import { ArrowLeft, Volume2 } from "lucide-react";
+
 export default function Dictee({ words, listId, onBack }) {
   const { user } = useAuth();
-  const [idx, setIdx] = useState(0); const [input, setInput] = useState(""); const [state, setState] = useState("idle");
-  const [correct, setCorrect] = useState(0); const [done, setDone] = useState(false);
+  const [idx, setIdx] = useState(0);
+  const [input, setInput] = useState("");
+  const [state, setState] = useState("idle");
+  const [correct, setCorrect] = useState(0);
+  const [done, setDone] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const inputRef = useRef();
+
   const current = words[idx];
-  const speak = () => { const u = new SpeechSynthesisUtterance(current.term); window.speechSynthesis.speak(u); };
+
+  const speak = () => {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(current.term);
+    u.onstart = () => setSpeaking(true);
+    u.onend = () => setSpeaking(false);
+    window.speechSynthesis.speak(u);
+  };
+
   useEffect(() => { inputRef.current?.focus(); speak(); }, [idx]);
+
   const check = async () => {
-    const isCorrect = input.trim().toLowerCase() === current.definition.trim().toLowerCase();
-    setState(isCorrect?"correct":"wrong");
-    await updateWordSRS(current.id, sm2(current, isCorrect?4:1));
-    if (isCorrect) setCorrect(c=>c+1);
+    const ok = input.trim().toLowerCase() === current.definition.trim().toLowerCase();
+    setState(ok ? "correct" : "wrong");
+    await updateWordSRS(current.id, sm2(current, ok ? 4 : 1));
+    if (ok) setCorrect(c => c + 1);
     setTimeout(async () => {
-      if (idx+1 >= words.length) { await logSession(user.uid, listId, "dictee", isCorrect?correct+1:correct, words.length); setDone(true); }
-      else { setIdx(i=>i+1); setInput(""); setState("idle"); }
+      if (idx + 1 >= words.length) {
+        await logSession(user.uid, listId, "dictee", ok ? correct + 1 : correct, words.length);
+        setDone(true);
+      } else { setIdx(i => i + 1); setInput(""); setState("idle"); }
     }, 1200);
   };
-  if (done) return <Results correct={correct} total={words.length} onBack={onBack} onRestart={()=>{setIdx(0);setInput("");setState("idle");setCorrect(0);setDone(false);}} />;
+
+  if (done) return <Results correct={correct} total={words.length} mode="Dictee" onBack={onBack}
+    onRestart={() => { setIdx(0); setInput(""); setState("idle"); setCorrect(0); setDone(false); }} />;
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-indigo-700 text-white px-6 py-4 flex items-center justify-between">
-        <button onClick={onBack}><ArrowLeft size={22} /></button>
-        <span>{idx+1}/{words.length}</span>
+    <div className="min-h-screen bg-[#07070f] text-white flex flex-col">
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[400px] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(251,146,60,0.05) 0%, transparent 70%)" }} />
       </div>
-      <div className="max-w-lg mx-auto p-6">
-        <div className="bg-white rounded-2xl shadow p-8 mb-6 text-center">
-          <p className="text-xs text-gray-400 uppercase mb-4">Luister en schrijf de vertaling</p>
-          <button onClick={speak} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-semibold text-lg">Afspelen</button>
-          {state==="wrong"&&<p className="text-green-600 mt-3 font-medium">Antwoord: {current.definition}</p>}
+      <nav className="glass border-b border-white/5 px-6 py-4 flex items-center gap-4 relative z-10">
+        <button onClick={onBack} className="text-slate-500 hover:text-white transition-colors"><ArrowLeft size={18} /></button>
+        <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+          <div className="h-full rounded-full transition-all duration-500"
+            style={{ width: ((idx/words.length)*100) + "%", background: "linear-gradient(90deg, #fb923c, #f97316)" }} />
         </div>
-        <input ref={inputRef}
-          className={"w-full border-2 rounded-xl px-4 py-3 text-lg focus:outline-none transition-colors " + (state==="correct"?"border-green-400 bg-green-50":state==="wrong"?"border-red-400 bg-red-50":"border-gray-200 focus:border-indigo-400")}
-          placeholder="Typ de vertaling..." value={input}
-          onChange={e=>{setInput(e.target.value);setState("idle");}}
-          onKeyDown={e=>e.key==="Enter"&&state==="idle"&&check()} />
-        <button onClick={check} disabled={!input.trim()||state!=="idle"} className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white py-3 rounded-xl font-semibold">Controleren</button>
+        <span className="text-slate-500 text-sm">{idx+1}/{words.length}</span>
+      </nav>
+
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-10 relative z-10">
+        <div className="glass rounded-2xl p-10 w-full max-w-lg text-center mb-6">
+          <p className="text-xs text-slate-600 uppercase tracking-widest mb-6">Luister en schrijf de vertaling</p>
+          <button onClick={speak}
+            className={"w-16 h-16 rounded-2xl flex items-center justify-center mx-auto transition-all " +
+              (speaking ? "animate-pulse" : "hover:scale-105")}
+            style={{ background: speaking ? "rgba(251,146,60,0.25)" : "rgba(251,146,60,0.12)", border: "1px solid rgba(251,146,60,0.3)" }}>
+            <Volume2 size={24} className="text-orange-400" />
+          </button>
+          <p className="text-xs text-slate-700 mt-4">Klik om opnieuw te horen</p>
+          {state === "wrong" && (
+            <p className="text-green-400 text-sm mt-4 animate-fadeUp">Antwoord: {current.definition}</p>
+          )}
+        </div>
+
+        <div className="w-full max-w-lg space-y-3">
+          <input ref={inputRef}
+            className={"input-dark w-full rounded-2xl px-5 py-4 text-base transition-all " +
+              (state === "correct" ? "border-green-500/40 bg-green-500/5" :
+               state === "wrong"   ? "border-red-500/40 bg-red-500/5" : "")}
+            placeholder="Typ de vertaling..."
+            value={input}
+            onChange={e => { setInput(e.target.value); setState("idle"); }}
+            onKeyDown={e => e.key === "Enter" && state === "idle" && check()} />
+          <button onClick={check} disabled={!input.trim() || state !== "idle"}
+            className="w-full btn-primary text-white py-3.5 rounded-2xl font-medium disabled:opacity-30 text-sm">
+            <span>Controleren</span>
+          </button>
+        </div>
       </div>
     </div>
   );

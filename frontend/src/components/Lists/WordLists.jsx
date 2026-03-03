@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { getLists, createList, deleteList } from "../../firebase/db";
+import AppLayout from "../Layout/AppLayout";
 import toast from "react-hot-toast";
-import { Plus, Trash2, ArrowLeft, BookOpen } from "lucide-react";
+import { Plus, Trash2, BookOpen, ChevronRight, X } from "lucide-react";
+
 export default function WordLists() {
   const { user } = useAuth();
   const nav = useNavigate();
@@ -12,60 +14,120 @@ export default function WordLists() {
   const [name, setName] = useState("");
   const [langFrom, setLangFrom] = useState("Nederlands");
   const [langTo, setLangTo] = useState("Engels");
+
   const load = () => getLists(user.uid).then(setLists);
   useEffect(() => { load(); }, []);
+
   const handleCreate = async () => {
     if (!name.trim()) return toast.error("Geef een naam op");
     await createList(user.uid, name.trim(), langFrom, langTo);
-    toast.success("Lijst aangemaakt!"); setName(""); setShowForm(false); load();
+    toast.success("Lijst aangemaakt!");
+    setName(""); setShowForm(false); load();
   };
+
   const handleDelete = async (id, e) => {
     e.stopPropagation();
     if (!confirm("Lijst en alle woorden verwijderen?")) return;
     await deleteList(id); toast.success("Verwijderd"); load();
   };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-indigo-700 text-white px-6 py-4 flex items-center gap-4 shadow">
-        <Link to="/"><ArrowLeft size={20} /></Link>
-        <span className="text-xl font-bold">Woordenlijsten</span>
-      </nav>
-      <div className="max-w-3xl mx-auto p-6">
-        <button onClick={() => setShowForm(v => !v)} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg mb-6 font-medium">
-          <Plus size={18} /> Nieuwe lijst
-        </button>
+    <AppLayout>
+      <div className="max-w-3xl mx-auto px-6 py-8">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Woordenlijsten</h1>
+            <p className="text-slate-500 text-sm mt-1">{lists.length} lijst{lists.length !== 1 ? "en" : ""}</p>
+          </div>
+          <button onClick={() => setShowForm(v => !v)}
+            className="btn-primary text-white px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2">
+            <span><Plus size={15} /></span>
+            <span>Nieuwe lijst</span>
+          </button>
+        </div>
+
+        {/* Formulier */}
         {showForm && (
-          <div className="bg-white rounded-xl shadow p-6 mb-6 border border-indigo-100">
-            <h3 className="font-bold text-lg mb-4">Nieuwe woordenlijst</h3>
-            <input className="w-full border rounded-lg px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" placeholder="Naam (bijv. Hoofdstuk 3)" value={name} onChange={e => setName(e.target.value)} />
-            <div className="flex gap-3 mb-4">
-              <div className="flex-1"><label className="text-sm text-gray-500">Van taal</label><input className="w-full border rounded-lg px-3 py-2 mt-1" value={langFrom} onChange={e => setLangFrom(e.target.value)} /></div>
-              <div className="flex-1"><label className="text-sm text-gray-500">Naar taal</label><input className="w-full border rounded-lg px-3 py-2 mt-1" value={langTo} onChange={e => setLangTo(e.target.value)} /></div>
+          <div className="glass rounded-2xl p-6 mb-6 animate-scale-in">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-semibold text-white">Nieuwe woordenlijst</h3>
+              <button onClick={() => setShowForm(false)} className="text-slate-600 hover:text-slate-400 transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+            <input className="input-dark w-full rounded-xl px-4 py-2.5 mb-4 text-sm"
+              placeholder="Naam (bijv. Hoofdstuk 3)"
+              value={name} onChange={e => setName(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleCreate()} />
+            <div className="flex gap-3 mb-5">
+              <div className="flex-1">
+                <label className="text-xs text-slate-600 mb-1.5 block">Van</label>
+                <input className="input-dark w-full rounded-xl px-3 py-2 text-sm"
+                  value={langFrom} onChange={e => setLangFrom(e.target.value)} />
+              </div>
+              <div className="flex-1">
+                <label className="text-xs text-slate-600 mb-1.5 block">Naar</label>
+                <input className="input-dark w-full rounded-xl px-3 py-2 text-sm"
+                  value={langTo} onChange={e => setLangTo(e.target.value)} />
+              </div>
             </div>
             <div className="flex gap-3">
-              <button onClick={handleCreate} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium">Aanmaken</button>
-              <button onClick={() => setShowForm(false)} className="border px-4 py-2 rounded-lg text-gray-600">Annuleren</button>
+              <button onClick={handleCreate}
+                className="btn-primary text-white px-5 py-2 rounded-xl text-sm font-medium">
+                <span>Aanmaken</span>
+              </button>
+              <button onClick={() => setShowForm(false)}
+                className="btn-ghost text-slate-400 px-5 py-2 rounded-xl text-sm">
+                Annuleren
+              </button>
             </div>
           </div>
         )}
-        {lists.length === 0 && (
-          <div className="text-center text-gray-400 py-16">
-            <BookOpen size={48} className="mx-auto mb-3 opacity-30" />
-            <p>Nog geen lijsten. Maak er een aan!</p>
+
+        {/* Lege staat */}
+        {lists.length === 0 && !showForm && (
+          <div className="glass rounded-2xl p-16 text-center">
+            <BookOpen size={40} className="mx-auto mb-4 text-slate-700" />
+            <p className="text-slate-500 text-sm mb-4">Nog geen woordenlijsten</p>
+            <button onClick={() => setShowForm(true)}
+              className="btn-primary text-white text-sm px-6 py-2.5 rounded-xl font-medium">
+              <span>Eerste lijst maken</span>
+            </button>
           </div>
         )}
-        <div className="grid gap-4">
-          {lists.map(l => (
-            <div key={l.id} onClick={() => nav("/lists/" + l.id)} className="bg-white rounded-xl shadow hover:shadow-md cursor-pointer p-5 flex items-center justify-between border border-gray-100 transition-all">
-              <div><p className="font-bold text-gray-800 text-lg">{l.name}</p><p className="text-sm text-gray-400">{l.langFrom} naar {l.langTo} - {l.wordCount || 0} woorden</p></div>
-              <div className="flex items-center gap-3">
-                <Link to={"/study/" + l.id} onClick={e => e.stopPropagation()} className="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-3 py-1 rounded-lg text-sm font-medium">Oefenen</Link>
-                <button onClick={e => handleDelete(l.id, e)} className="text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
+
+        {/* Lijst */}
+        <div className="grid gap-3">
+          {lists.map((l, i) => (
+            <div key={l.id} onClick={() => nav("/lists/" + l.id)}
+              className={"glass glass-hover rounded-2xl p-5 flex items-center justify-between cursor-pointer group animate-fadeUp"}
+              style={{ animationDelay: i * 0.05 + "s" }}>
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg"
+                  style={{ background: "rgba(124,58,237,0.1)" }}>
+                  &#x1F4DA;
+                </div>
+                <div>
+                  <p className="font-semibold text-white text-sm">{l.name}</p>
+                  <p className="text-xs text-slate-600 mt-0.5">{l.langFrom} &rarr; {l.langTo} &middot; {l.wordCount||0} woorden</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Link to={"/study/" + l.id} onClick={e => e.stopPropagation()}
+                  className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
+                  style={{ background: "rgba(124,58,237,0.12)", color: "#a78bfa" }}>
+                  Oefenen
+                </Link>
+                <button onClick={e => handleDelete(l.id, e)}
+                  className="p-1.5 rounded-lg text-slate-700 hover:text-red-400 transition-colors">
+                  <Trash2 size={14} />
+                </button>
+                <ChevronRight size={14} className="text-slate-700 group-hover:text-slate-500 transition-colors" />
               </div>
             </div>
           ))}
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }
