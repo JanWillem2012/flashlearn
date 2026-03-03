@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { updateWordSRS, logSession } from "../../firebase/db";
 import { sm2 } from "../../hooks/useSpacedRepetition";
 import { useAuth } from "../../context/AuthContext";

@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { updateWordSRS, logSession } from "../../firebase/db";
 import { sm2, qualityFromResult } from "../../hooks/useSpacedRepetition";
 import { useAuth } from "../../context/AuthContext";

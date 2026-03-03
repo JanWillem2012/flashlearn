@@ -1,4 +1,4 @@
-﻿import {
+import {
   collection, doc, addDoc, updateDoc, deleteDoc,
   getDocs, getDoc, query, where, orderBy, serverTimestamp
 } from "firebase/firestore";

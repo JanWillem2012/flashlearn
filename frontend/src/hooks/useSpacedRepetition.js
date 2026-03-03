@@ -1,4 +1,4 @@
-﻿export const sm2 = (word, quality) => {
+export const sm2 = (word, quality) => {
   let { interval, repetitions, easeFactor } = word;
   if (quality >= 3) {
     if (repetitions === 0) interval = 1;

@@ -1,4 +1,4 @@
-﻿import { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import toast from "react-hot-toast";
 import { X, Upload, Loader, Check, Trash2 } from "lucide-react";
 const AI_PROXY_URL = import.meta.env.VITE_AI_PROXY_URL;
