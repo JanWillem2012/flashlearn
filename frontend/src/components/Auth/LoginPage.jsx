@@ -1,10 +1,19 @@
-import { useAuth } from "../../context/AuthContext";
+﻿import { useAuth } from "../../context/AuthContext";
 import { Navigate } from "react-router-dom";
-import toast from "react-hot-toast";
+
 export default function LoginPage() {
   const { user, loginGoogle } = useAuth();
   if (user) return <Navigate to="/" />;
-  const handleLogin = async () => { try { await loginGoogle(); } catch { toast.error("Inloggen mislukt"); } };
+
+  const handleLogin = async () => {
+    try {
+      await loginGoogle();
+    } catch (err) {
+      console.error("Fout:", err.code, err.message);
+      alert("Inloggen mislukt: " + err.code);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-800 flex items-center justify-center">
       <div className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-md text-center">

@@ -1,5 +1,5 @@
 ﻿import { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, signInWithRedirect, getRedirectResult, signOut } from "firebase/auth";
+import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { auth, googleProvider } from "../firebase/config";
 
 const AuthContext = createContext(null);
@@ -9,27 +9,24 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Vang het redirect resultaat op na Google login
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          setUser(result.user);
-        }
-      })
-      .catch((err) => {
-        console.error("Redirect login fout:", err);
-      });
-
-    // Luister naar auth status veranderingen
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
     });
-
     return unsub;
   }, []);
 
-  const loginGoogle = () => signInWithRedirect(auth, googleProvider);
+  const loginGoogle = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      setUser(result.user);
+    } catch (err) {
+      console.error("Login fout code:", err.code);
+      console.error("Login fout bericht:", err.message);
+      throw err;
+    }
+  };
+
   const logout = () => signOut(auth);
 
   return (
