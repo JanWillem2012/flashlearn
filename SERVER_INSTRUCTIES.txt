@@ -1,0 +1,68 @@
+﻿=== SERVER SETUP INSTRUCTIES ===
+Voer deze stappen uit op je Ubuntu server via SSH.
+
+VERBINDEN MET SERVER:
+  ssh gebruiker@IP-VAN-SERVER
+
+--- STAP 1: DuckDNS IP updaten ---
+  echo url="https://www.duckdns.org/update?domains=aibyjw&token=17e3f5d2-93e9-4e7d-a0d0-903cc4ec9a18&ip=" | curl -k -o /tmp/duck.log -K -
+
+Cronjob instellen zodat het IP automatisch bijblijft:
+  crontab -e
+  Voeg toe aan het einde van het bestand:
+  */5 * * * * echo url="https://www.duckdns.org/update?domains=aibyjw&token=17e3f5d2-93e9-4e7d-a0d0-903cc4ec9a18&ip=" | curl -k -o /tmp/duck.log -K -
+
+--- STAP 2: Map aanmaken op server ---
+  sudo mkdir -p /opt/flashlearn
+  sudo chown $USER:$USER /opt/flashlearn
+
+--- STAP 3: Bestanden kopiÃ«ren vanaf Windows (voer dit uit in PowerShell op je PC) ---
+  scp -r C:\Users\janwi\Downloads\flashlearn\ai-proxy gebruiker@IP-VAN-SERVER:/opt/flashlearn/
+  scp C:\Users\janwi\Downloads\flashlearn\docker-compose.yml gebruiker@IP-VAN-SERVER:/opt/flashlearn/
+  scp C:\Users\janwi\Downloads\flashlearn\nginx-ai-proxy.conf gebruiker@IP-VAN-SERVER:~/
+
+--- STAP 4: .env aanmaken op server ---
+  cd /opt/flashlearn
+  nano .env
+
+  Inhoud van .env:
+  AI_PROXY_SECRET=kies_een_sterk_wachtwoord
+
+  Opslaan: Ctrl+O -> Enter -> Ctrl+X
+
+--- STAP 5: Nginx instellen ---
+  sudo cp ~/nginx-ai-proxy.conf /etc/nginx/sites-available/ai-proxy
+  sudo ln -s /etc/nginx/sites-available/ai-proxy /etc/nginx/sites-enabled/
+  sudo nginx -t
+  (moet zeggen: syntax is ok)
+
+--- STAP 6: SSL certificaat ---
+  sudo apt install certbot python3-certbot-nginx -y
+  sudo certbot --nginx -d aibyjw.duckdns.org
+  sudo systemctl reload nginx
+
+--- STAP 7: Docker starten ---
+  cd /opt/flashlearn
+  docker compose up -d --build
+
+  Controleren:
+  docker ps
+  (je moet ollama en ai-proxy zien)
+
+--- STAP 8: LLaVA downloaden (4 GB, duurt 10-15 minuten) ---
+  docker exec -it ollama ollama pull llava
+
+--- STAP 9: Testen ---
+  curl http://localhost:3001/health
+  Moet geven: {"status":"ok"}
+
+  curl https://aibyjw.duckdns.org/health
+  Moet ook geven: {"status":"ok"}
+
+--- STAP 10: Cloudflare Pages instellen ---
+  Ga naar je Cloudflare Pages project
+  Settings -> Environment variables
+  Voeg toe of wijzig: VITE_AI_PROXY_URL = https://aibyjw.duckdns.org
+  Trigger een nieuwe deploy
+
+=== KLAAR! ===

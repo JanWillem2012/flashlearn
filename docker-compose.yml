@@ -1,0 +1,29 @@
+﻿version: '3.9'
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - ai_net
+  ai-proxy:
+    build: ./ai-proxy
+    container_name: ai-proxy
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:3001:3001'
+    environment:
+      - OLLAMA_URL=http://ollama:11434
+      - ALLOWED_ORIGIN=https://flashlearn.pages.dev
+      - API_SECRET=${AI_PROXY_SECRET}
+    depends_on:
+      - ollama
+    networks:
+      - ai_net
+volumes:
+  ollama_data:
+networks:
+  ai_net:
+    driver: bridge
